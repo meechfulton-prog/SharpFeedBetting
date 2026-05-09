@@ -1,104 +1,238 @@
-// netlify/functions/odds.js
-// Serverless function — proxies SharpAPI, runs EV math, returns plays
- 
-const API_KEY  = "sk_live_CoKPbimEySSsGyC7tHVHXV";
-const BASE_URL = "https://api.sharpapi.io/api/v1";
- 
-// ── EV Math ────────────────────────────────────────────────────────────────
+// SharpFeed — netlify/functions/odds.js
+// Uses The Odds API (your existing key) as primary source
+// Pinnacle is used as the sharp/devig reference line when available
+// Full no-vig EV math with multiplicative devig
+
+const ODDS_API_KEY = "6635c126db560626e7df684998a93061";
+const ODDS_API_BASE = "https://api.the-odds-api.com/v4";
+
+// All books we pull — Pinnacle is the sharp line reference
+const ALL_BOOKS = "draftkings,fanduel,caesars,betmgm,pinnacle,pointsbet,betrivers,unibet";
+const SHARP_BOOK = "Pinnacle"; // used as devig reference if present
+
+// Sport key map
+const SPORT_MAP = {
+  nba:    "basketball_nba",
+  mlb:    "baseball_mlb",
+  nhl:    "icehockey_nhl",
+  nfl:    "americanfootball_nfl",
+  ncaab:  "basketball_ncaab",
+  ncaaf:  "americanfootball_ncaaf",
+  wnba:   "basketball_wnba",
+  tennis: "tennis_atp_french_open",
+  mls:    "soccer_usa_mls",
+  ufc:    "mma_mixed_martial_arts",
+};
+
+// ── Math ───────────────────────────────────────────────────────────────────
 function americanToDec(a) {
   a = Number(a);
+  if (!a || isNaN(a)) return 1;
   return a > 0 ? 1 + a / 100 : 1 + 100 / Math.abs(a);
 }
 function decToAmerican(d) {
   d = Number(d);
-  if (d <= 1) return 0;
+  if (!d || d <= 1) return 0;
   return d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1));
 }
-function noVigProbs(oddsA, oddsB) {
-  const impA = oddsA.reduce((s, o) => s + 1 / americanToDec(o), 0) / oddsA.length;
-  const impB = oddsB.reduce((s, o) => s + 1 / americanToDec(o), 0) / oddsB.length;
-  const tot  = impA + impB;
-  return [impA / tot, impB / tot];
+
+// Multiplicative devig: removes vig proportionally
+function devigOdds(odds1, odds2) {
+  const imp1 = 1 / americanToDec(odds1);
+  const imp2 = 1 / americanToDec(odds2);
+  const total = imp1 + imp2;
+  return [imp1 / total, imp2 / total]; // [fairProb1, fairProb2]
 }
-function calcEV(fp, bestAmerican) {
-  return (fp * americanToDec(bestAmerican) - 1) * 100;
-}
- 
-// ── Parse flat SharpAPI rows → EV plays ───────────────────────────────────
-function extractPlays(rows, marketKey, minEV) {
-  const filtered = rows.filter(r =>
-    (r.market_type || "").toLowerCase() === marketKey.toLowerCase()
-  );
- 
-  // Group by event
-  const events = {};
-  for (const row of filtered) {
-    const home = row.home_team || "Home";
-    const away = row.away_team || "Away";
-    const key  = `${away}||${home}`;
-    const sel  = row.selection || "";
-    if (!events[key]) events[key] = { home, away, selections: {} };
-    if (!events[key].selections[sel]) events[key].selections[sel] = [];
-    events[key].selections[sel].push({
-      book:  row.sportsbook || "?",
-      odds:  Number(row.odds_american),
-      sport: (row.league || row.sport || "").toUpperCase(),
-    });
+
+// Consensus fair prob: average devig across all books
+function consensusFairProbs(side1Odds, side2Odds) {
+  const pairs = Math.min(side1Odds.length, side2Odds.length);
+  if (pairs === 0) return [0.5, 0.5];
+  let sumP1 = 0, sumP2 = 0;
+  // Pair each book with opposing side best odds
+  for (let i = 0; i < side1Odds.length; i++) {
+    const o1 = side1Odds[i];
+    // use average of side2 as the opposing line
+    const avgO2 = side2Odds.reduce((s, o) => s + americanToDec(o), 0) / side2Odds.length;
+    const o2 = decToAmerican(avgO2);
+    const [p1] = devigOdds(o1, o2);
+    sumP1 += p1;
   }
- 
+  for (let i = 0; i < side2Odds.length; i++) {
+    const o2 = side2Odds[i];
+    const avgO1 = side1Odds.reduce((s, o) => s + americanToDec(o), 0) / side1Odds.length;
+    const o1 = decToAmerican(avgO1);
+    const [, p2] = devigOdds(o1, o2);
+    sumP2 += p2;
+  }
+  const fp1 = sumP1 / side1Odds.length;
+  const fp2 = sumP2 / side2Odds.length;
+  const tot = fp1 + fp2;
+  return [fp1 / tot, fp2 / tot];
+}
+
+function calcEV(fairProb, bestAmerican) {
+  return (fairProb * americanToDec(bestAmerican) - 1) * 100;
+}
+
+function formatGameTime(isoString) {
+  if (!isoString) return null;
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleString("en-US", {
+      weekday: "short", month: "short", day: "numeric",
+      hour: "numeric", minute: "2-digit", timeZoneName: "short",
+      timeZone: "America/New_York"
+    });
+  } catch { return isoString; }
+}
+
+// ── Core EV extractor ─────────────────────────────────────────────────────
+function extractEVPlays(games, marketKey, minEV) {
   const plays = [];
-  for (const evt of Object.values(events)) {
-    const matchup = `${evt.away} @ ${evt.home}`;
-    const sels    = Object.entries(evt.selections);
-    if (sels.length < 2) continue;
- 
-    for (let i = 0; i < sels.length - 1; i++) {
-      for (let j = i + 1; j < sels.length; j++) {
-        const [selA, booksA] = sels[i];
-        const [selB, booksB] = sels[j];
- 
-        const bA = booksA.filter(b => b.odds && !isNaN(b.odds));
-        const bB = booksB.filter(b => b.odds && !isNaN(b.odds));
-        if (!bA.length || !bB.length) continue;
- 
-        const sport  = bA[0].sport;
-        const bestA  = bA.reduce((a, b) => a.odds > b.odds ? a : b);
-        const bestB  = bB.reduce((a, b) => a.odds > b.odds ? a : b);
-        const oddsA  = bA.map(b => b.odds);
-        const oddsB  = bB.map(b => b.odds);
- 
-        try {
-          const [fpA, fpB] = noVigProbs(oddsA, oddsB);
-          const evA = calcEV(fpA, bestA.odds);
-          const evB = calcEV(fpB, bestB.odds);
- 
-          if (evA >= minEV) plays.push({
-            matchup, sport, bet: selA,
-            ev:       Math.round(evA * 100) / 100,
-            bestOdds: bestA.odds,
-            bestBook: bestA.book,
-            fairOdds: decToAmerican(1 / fpA),
-            fairProb: Math.round(fpA * 1000) / 10,
-            allBooks: bA.sort((a, b) => b.odds - a.odds),
-          });
- 
-          if (evB >= minEV) plays.push({
-            matchup, sport, bet: selB,
-            ev:       Math.round(evB * 100) / 100,
-            bestOdds: bestB.odds,
-            bestBook: bestB.book,
-            fairOdds: decToAmerican(1 / fpB),
-            fairProb: Math.round(fpB * 1000) / 10,
-            allBooks: bB.sort((a, b) => b.odds - a.odds),
-          });
-        } catch (_) {}
+
+  for (const game of games) {
+    const matchup  = `${game.away_team} @ ${game.home_team}`;
+    const gameTime = formatGameTime(game.commence_time);
+    const sport    = game.sport_title || "";
+
+    // Build per-outcome book map
+    const outcomeMap = {}; // { outcomeName: [{book, price, point}] }
+
+    // Try to use Pinnacle as reference if present
+    let pinnacleOutcomes = null;
+    for (const bm of (game.bookmakers || [])) {
+      for (const mk of (bm.markets || [])) {
+        if (mk.key !== marketKey) continue;
+        if (bm.title === SHARP_BOOK) {
+          pinnacleOutcomes = {};
+          for (const oc of mk.outcomes) {
+            pinnacleOutcomes[oc.name] = oc.price;
+          }
+        }
+        for (const oc of mk.outcomes) {
+          const label = oc.name + (oc.point != null
+            ? ` ${oc.point > 0 ? "+" : ""}${oc.point}` : "");
+          if (!outcomeMap[label]) outcomeMap[label] = [];
+          outcomeMap[label].push({ book: bm.title, price: oc.price, point: oc.point });
+        }
+      }
+    }
+
+    const keys = Object.keys(outcomeMap);
+    if (keys.length < 2) continue;
+
+    // Pair opposing sides
+    for (let i = 0; i < keys.length - 1; i++) {
+      for (let j = i + 1; j < keys.length; j++) {
+        const sA = outcomeMap[keys[i]].filter(b => b.price && !isNaN(b.price));
+        const sB = outcomeMap[keys[j]].filter(b => b.price && !isNaN(b.price));
+        if (!sA.length || !sB.length) continue;
+
+        const bestA = sA.reduce((a, b) => a.price > b.price ? a : b);
+        const bestB = sB.reduce((a, b) => a.price > b.price ? a : b);
+        const oddsA = sA.map(b => b.price);
+        const oddsB = sB.map(b => b.price);
+
+        let fpA, fpB;
+
+        // If Pinnacle present, use it as the devig reference (most accurate)
+        const pinKeyA = keys[i].split(" ")[0]; // strip point
+        const pinKeyB = keys[j].split(" ")[0];
+        if (pinnacleOutcomes &&
+            pinnacleOutcomes[pinKeyA] &&
+            pinnacleOutcomes[pinKeyB]) {
+          [fpA, fpB] = devigOdds(pinnacleOutcomes[pinKeyA], pinnacleOutcomes[pinKeyB]);
+        } else {
+          // Fall back to consensus devig across all books
+          [fpA, fpB] = consensusFairProbs(oddsA, oddsB);
+        }
+
+        const evA = calcEV(fpA, bestA.price);
+        const evB = calcEV(fpB, bestB.price);
+
+        const makePlay = (bet, ev, best, fp, allBooks) => ({
+          matchup, sport, gameTime,
+          bet, ev: Math.round(ev * 100) / 100,
+          bestOdds: best.price,
+          bestBook: best.book,
+          fairOdds: decToAmerican(1 / fp),
+          fairProb: Math.round(fp * 1000) / 10,
+          vig: Math.round((1 - fp - (1 - fp)) * 100) / 100, // for display
+          allBooks: allBooks.sort((a, b) => b.price - a.price),
+          usingPinnacle: !!pinnacleOutcomes,
+        });
+
+        if (evA >= minEV) plays.push(makePlay(keys[i], evA, bestA, fpA, sA));
+        if (evB >= minEV) plays.push(makePlay(keys[j], evB, bestB, fpB, sB));
       }
     }
   }
- 
+
   return plays.sort((a, b) => b.ev - a.ev);
 }
- 
+
+// ── Parlay Builder ─────────────────────────────────────────────────────────
+function buildParlays(plays) {
+  // Use only plays with EV >= 3% and from different games
+  const pool = plays.filter(p => p.ev >= 3);
+  const parlays = [];
+
+  // 2-leg parlays — top combinations by combined EV
+  for (let i = 0; i < Math.min(pool.length, 8) - 1; i++) {
+    for (let j = i + 1; j < Math.min(pool.length, 8); j++) {
+      if (pool[i].matchup === pool[j].matchup) continue; // no same-game parlays
+      const legA = pool[i];
+      const legB = pool[j];
+      const parlayDec = americanToDec(legA.bestOdds) * americanToDec(legB.bestOdds);
+      const parlayOdds = decToAmerican(parlayDec);
+      const combinedFP = (legA.fairProb / 100) * (legB.fairProb / 100);
+      const parlayEV = calcEV(combinedFP, parlayOdds);
+      if (parlayEV > 0) {
+        parlays.push({
+          legs: [
+            { bet: legA.bet, matchup: legA.matchup, odds: legA.bestOdds, book: legA.bestBook, ev: legA.ev },
+            { bet: legB.bet, matchup: legB.matchup, odds: legB.bestOdds, book: legB.bestBook, ev: legB.ev },
+          ],
+          parlayOdds,
+          parlayEV: Math.round(parlayEV * 100) / 100,
+          combinedFairProb: Math.round(combinedFP * 1000) / 10,
+        });
+      }
+    }
+  }
+
+  // 3-leg parlays — top 3 EV plays from different games
+  const top = pool.slice(0, 6);
+  for (let i = 0; i < top.length - 2; i++) {
+    for (let j = i + 1; j < top.length - 1; j++) {
+      for (let k = j + 1; k < top.length; k++) {
+        const legs = [top[i], top[j], top[k]];
+        // All different games
+        const matchups = new Set(legs.map(l => l.matchup));
+        if (matchups.size < 3) continue;
+        const parlayDec = legs.reduce((p, l) => p * americanToDec(l.bestOdds), 1);
+        const parlayOdds = decToAmerican(parlayDec);
+        const combinedFP = legs.reduce((p, l) => p * (l.fairProb / 100), 1);
+        const parlayEV = calcEV(combinedFP, parlayOdds);
+        if (parlayEV > 0) {
+          parlays.push({
+            legs: legs.map(l => ({
+              bet: l.bet, matchup: l.matchup,
+              odds: l.bestOdds, book: l.bestBook, ev: l.ev,
+            })),
+            parlayOdds,
+            parlayEV: Math.round(parlayEV * 100) / 100,
+            combinedFairProb: Math.round(combinedFP * 1000) / 10,
+          });
+        }
+      }
+    }
+  }
+
+  return parlays.sort((a, b) => b.parlayEV - a.parlayEV).slice(0, 8);
+}
+
 // ── Handler ────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   const headers = {
@@ -106,48 +240,69 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Headers": "Content-Type",
     "Content-Type": "application/json",
   };
- 
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "" };
+  if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
+
+  const p      = event.queryStringParameters || {};
+  const league = (p.league  || "nba").toLowerCase();
+  const market = (p.market  || "h2h").toLowerCase();
+  const minEV  = parseFloat(p.min_ev || "2");
+
+  const sportKey = SPORT_MAP[league];
+  if (!sportKey) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: `Unknown league: ${league}` }) };
   }
- 
-  const params   = event.queryStringParameters || {};
-  const league   = (params.league   || "nba").toLowerCase();
-  const market   = (params.market   || "moneyline").toLowerCase();
-  const minEV    = parseFloat(params.min_ev || "2");
- 
+
   try {
-    const url = `${BASE_URL}/odds?league=${league}&market=${market}&limit=200`;
-    const res  = await fetch(url, {
-      headers: { "X-API-Key": API_KEY, "Accept": "application/json" },
-    });
- 
+    const url = `${ODDS_API_BASE}/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${market}&oddsFormat=american&bookmakers=${ALL_BOOKS}`;
+    const res  = await fetch(url);
+
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
+      return { statusCode: res.status, headers, body: JSON.stringify({ error: `Odds API ${res.status}: ${txt.slice(0,200)}` }) };
+    }
+
+    const games  = await res.json();
+    if (!Array.isArray(games)) throw new Error("Unexpected response from Odds API");
+
+    if (games.length === 0) {
       return {
-        statusCode: res.status,
+        statusCode: 200,
         headers,
-        body: JSON.stringify({ error: `SharpAPI ${res.status}: ${txt.slice(0, 200)}` }),
+        body: JSON.stringify({
+          plays: [],
+          parlays: [],
+          meta: {
+            games_found: 0,
+            plays_found: 0,
+            league, market, min_ev: minEV,
+            message: "No games found — season may be inactive or no upcoming games scheduled",
+            devig_method: "n/a",
+            books_checked: ALL_BOOKS.split(",").length,
+          },
+        }),
       };
     }
- 
-    const json   = await res.json();
-    const rows   = Array.isArray(json) ? json : (json.data ?? []);
-    const plays  = extractPlays(rows, market, minEV);
- 
+
+    const plays   = extractEVPlays(games, market, minEV);
+    const parlays = buildParlays(plays);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         plays,
-        meta: { total_rows: rows.length, plays_found: plays.length, league, market, min_ev: minEV },
+        parlays,
+        meta: {
+          games_found:  games.length,
+          plays_found:  plays.length,
+          league, market,
+          min_ev: minEV,
+          devig_method: "pinnacle_reference_with_consensus_fallback",
+          books_checked: ALL_BOOKS.split(",").length,
+        },
       }),
     };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message }),
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
