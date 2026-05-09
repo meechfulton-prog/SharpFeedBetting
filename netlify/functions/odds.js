@@ -12,7 +12,10 @@ const SHARP_BOOK = "Pinnacle"; // used as devig reference if present
 
 // Sport key map
 const SPORT_MAP = {
-  nba:    "basketball_nba",
+  // NBA Playoffs — active key May/June
+  nba:       "basketball_nba",
+  nba_champ: "basketball_nba_championship_winner",
+  // Other sports
   mlb:    "baseball_mlb",
   nhl:    "icehockey_nhl",
   nfl:    "americanfootball_nfl",
@@ -22,6 +25,14 @@ const SPORT_MAP = {
   tennis: "tennis_atp_french_open",
   mls:    "soccer_usa_mls",
   ufc:    "mma_mixed_martial_arts",
+  epl:    "soccer_epl",
+};
+
+// Try multiple sport keys if first returns empty
+const SPORT_FALLBACKS = {
+  nba: ["basketball_nba", "basketball_nba_championship_winner"],
+  nhl: ["icehockey_nhl", "icehockey_nhl_championship_winner"],
+  tennis: ["tennis_atp_french_open", "tennis_wta_french_open", "tennis_atp_us_open", "tennis_atp"],
 };
 
 // ── Math ───────────────────────────────────────────────────────────────────
@@ -252,30 +263,48 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: `Unknown league: ${league}` }) };
   }
 
-  try {
-    const url = `${ODDS_API_BASE}/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${market}&oddsFormat=american&bookmakers=${ALL_BOOKS}`;
-    const res  = await fetch(url);
+  // Build list of keys to try (primary + fallbacks)
+  const keysToTry = SPORT_FALLBACKS[league]
+    ? [sportKey, ...SPORT_FALLBACKS[league].filter(k => k !== sportKey)]
+    : [sportKey];
 
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      return { statusCode: res.status, headers, body: JSON.stringify({ error: `Odds API ${res.status}: ${txt.slice(0,200)}` }) };
+  try {
+    let games = [];
+    let usedKey = sportKey;
+
+    // Try each key until we get games
+    for (const key of keysToTry) {
+      const url = `${ODDS_API_BASE}/sports/${key}/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=${market}&oddsFormat=american&bookmakers=${ALL_BOOKS}`;
+      const res  = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        games  = data;
+        usedKey = key;
+        break;
+      }
     }
 
-    const games  = await res.json();
-    if (!Array.isArray(games)) throw new Error("Unexpected response from Odds API");
-
     if (games.length === 0) {
+      // Last attempt: fetch active sports list and find matching ones
+      const sportsRes = await fetch(`${ODDS_API_BASE}/sports/?apiKey=${ODDS_API_KEY}`);
+      let activeSuggestion = "";
+      if (sportsRes.ok) {
+        const activeSports = await sportsRes.json();
+        const active = activeSports
+          .filter(s => s.active && s.key.includes(league.replace("nba","basketball").replace("mlb","baseball").replace("nhl","hockey")))
+          .map(s => s.key);
+        if (active.length) activeSuggestion = ` Active keys found: ${active.join(", ")}`;
+      }
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          plays: [],
-          parlays: [],
+          plays: [], parlays: [],
           meta: {
-            games_found: 0,
-            plays_found: 0,
+            games_found: 0, plays_found: 0,
             league, market, min_ev: minEV,
-            message: "No games found — season may be inactive or no upcoming games scheduled",
+            message: `No games found for ${league.toUpperCase()} right now.${activeSuggestion} Try MLB, NHL, Tennis, or MLS.`,
             devig_method: "n/a",
             books_checked: ALL_BOOKS.split(",").length,
           },
