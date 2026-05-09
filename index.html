@@ -3,127 +3,229 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>SharpFeed — +EV Scanner</title>
+<title>SharpFeed AI — +EV Scanner</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#07090f;--card:#0d1117;--border:#1a2030;--green:#00ff88;--blue:#00cfff;--yellow:#ffb700;--red:#ff4757;--muted:#4a5568;--text:#e2e8f0}
+:root{--bg:#07090f;--card:#0d1117;--border:#1a2030;--green:#00ff88;--blue:#00cfff;--yellow:#ffb700;--red:#ff4757;--purple:#b794f4;--muted:#4a5568;--text:#e2e8f0}
 body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,136,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
- 
+
 /* HEADER */
-header{position:sticky;top:0;z-index:100;background:rgba(7,9,15,.96);border-bottom:1px solid var(--border);padding:13px 20px;display:flex;justify-content:space-between;align-items:center}
+header{position:sticky;top:0;z-index:100;background:rgba(7,9,15,.97);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
 .logo{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:var(--green)}
 .logo span{color:var(--text)}
-.logo small{margin-left:8px;font-size:9px;color:#2a3a50;letter-spacing:1px}
+.logo .ai-tag{color:var(--purple);font-size:14px}
+.logo small{margin-left:8px;font-size:9px;color:#3a2a60;letter-spacing:1px}
 .status-pill{display:flex;align-items:center;gap:7px;border-radius:20px;padding:5px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .3s}
 .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
- 
-/* MAIN */
-.wrap{max-width:860px;margin:0 auto;padding:0 16px 60px;position:relative;z-index:1}
- 
+
+.wrap{max-width:900px;margin:0 auto;padding:0 16px 80px;position:relative;z-index:1}
+
 /* HERO */
-.hero{padding:26px 0 18px;border-bottom:1px solid var(--border);margin-bottom:20px}
-.hero h1{font-size:clamp(24px,5vw,40px);font-weight:700;letter-spacing:-1px;line-height:1.15;margin-bottom:6px}
+.hero{padding:24px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.hero h1{font-size:clamp(22px,5vw,38px);font-weight:700;letter-spacing:-1px;line-height:1.15;margin-bottom:6px}
 .hero h1 em{font-style:normal;color:var(--green)}
 .hero p{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
- 
-/* STATS */
+.hero p .ai{color:var(--purple)}
+
+/* STATS BAR */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;background:var(--card)}
-.stat{padding:13px 14px;border-right:1px solid var(--border)}
+.stat{padding:12px 14px;border-right:1px solid var(--border)}
 .stat:last-child{border-right:none}
 .stat-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
-.stat-value{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--green)}
- 
+.stat-value{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:var(--green)}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:4px}
+.tab{flex:1;padding:9px 4px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .2s;text-align:center;text-transform:uppercase;letter-spacing:.5px}
+.tab.active{background:var(--green);color:#000}
+.tab.purple.active{background:var(--purple);color:#000}
+
 /* CONTROLS */
-.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;align-items:center}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
 .ctrl-box{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
 .ctrl-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
 select,input[type=number]{background:transparent;border:none;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;cursor:pointer}
 select option{background:#1a2030}
 input[type=number]{width:46px}
-.btn{padding:10px 22px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.5px}
+.btn{padding:10px 20px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.5px}
 .btn-primary{background:var(--green);color:#000}
 .btn-primary:hover{background:#00e07a;transform:translateY(-1px)}
 .btn-primary:disabled{background:var(--card);color:var(--muted);border:1px solid var(--border);cursor:not-allowed;transform:none}
- 
-/* FEED */
-.feed-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.feed-title{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:2px}
-.play-count{background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);border-radius:4px;padding:2px 8px;font-size:11px}
+
+/* SECTION HEADER */
+.section-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.section-title{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:2px}
+.badge{background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);border-radius:4px;padding:2px 8px;font-size:11px}
 .updated{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
- 
-/* CARDS */
-.play-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start;animation:fadeUp .3s ease both}
-.play-card.high{border-color:rgba(0,255,136,.18);border-left:3px solid var(--green)}
-.play-card.mid {border-left:3px solid var(--yellow)}
-.play-card.low {border-left:3px solid var(--blue)}
-.play-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+
+/* PLAY CARDS */
+.play-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px 17px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;animation:fadeUp .3s ease both;position:relative;overflow:hidden}
+.play-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.play-card.ev-high::before{background:var(--green)}
+.play-card.ev-mid::before{background:var(--yellow)}
+.play-card.ev-low::before{background:var(--blue)}
+.play-card.ev-high{border-color:rgba(0,255,136,.15)}
+.game-time{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--purple);margin-bottom:3px}
+.play-meta{display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap}
 .play-sport{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
-.confidence{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;border-radius:3px}
+.conf-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;border-radius:3px}
 .conf-high{background:rgba(0,255,136,.08);color:var(--green);border:1px solid rgba(0,255,136,.2)}
-.conf-mid {background:rgba(255,183,0,.08);color:var(--yellow);border:1px solid rgba(255,183,0,.2)}
-.conf-low {background:rgba(0,207,255,.08);color:var(--blue);border:1px solid rgba(0,207,255,.2)}
-.matchup{font-size:15px;font-weight:600;margin-bottom:4px}
-.bet{font-size:13px;color:var(--blue);font-weight:500;margin-bottom:10px}
-.books{display:flex;gap:6px;flex-wrap:wrap}
-.book-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted)}
+.conf-mid{background:rgba(255,183,0,.08);color:var(--yellow);border:1px solid rgba(255,183,0,.2)}
+.conf-low{background:rgba(0,207,255,.08);color:var(--blue);border:1px solid rgba(0,207,255,.2)}
+.pin-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(183,148,244,.08);color:var(--purple);border:1px solid rgba(183,148,244,.2)}
+.matchup{font-size:14px;font-weight:600;margin-bottom:3px}
+.bet-label{font-size:13px;color:var(--blue);font-weight:500;margin-bottom:8px}
+.books{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.book-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 7px;border-radius:4px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted)}
 .book-chip.best{background:rgba(0,207,255,.08);border-color:rgba(0,207,255,.3);color:var(--blue)}
-.play-right{text-align:right;min-width:92px}
-.ev-badge{display:inline-block;padding:6px 12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:700;margin-bottom:8px;white-space:nowrap}
-.ev-high{background:rgba(0,255,136,.12);border:1px solid rgba(0,255,136,.35);color:var(--green)}
-.ev-mid {background:rgba(255,183,0,.12);border:1px solid rgba(255,183,0,.35);color:var(--yellow)}
-.ev-low {background:rgba(0,207,255,.12);border:1px solid rgba(0,207,255,.35);color:var(--blue)}
-.best-odds{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);margin-bottom:2px}
-.fair-odds{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
-.win-prob {font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2a3040;margin-top:2px}
- 
+.fair-info{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px}
+.play-right{text-align:right;min-width:86px}
+.ev-badge{display:inline-block;padding:5px 11px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;margin-bottom:6px;white-space:nowrap}
+.ev-high-b{background:rgba(0,255,136,.12);border:1px solid rgba(0,255,136,.3);color:var(--green)}
+.ev-mid-b{background:rgba(255,183,0,.12);border:1px solid rgba(255,183,0,.3);color:var(--yellow)}
+.ev-low-b{background:rgba(0,207,255,.12);border:1px solid rgba(0,207,255,.3);color:var(--blue)}
+.best-line{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);margin-bottom:2px}
+.fair-line{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.win-prob{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2a3040;margin-top:2px}
+
+/* PARLAY CARDS */
+.parlay-card{background:var(--card);border:1px solid rgba(183,148,244,.2);border-left:3px solid var(--purple);border-radius:12px;padding:15px 17px;margin-bottom:10px;animation:fadeUp .3s ease both}
+.parlay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.parlay-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:1px}
+.parlay-odds-big{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:var(--purple);margin-top:3px}
+.parlay-ev-badge{padding:5px 11px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;background:rgba(183,148,244,.1);border:1px solid rgba(183,148,244,.25);color:var(--purple)}
+.p-leg{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.p-leg:last-child{border-bottom:none;padding-bottom:0}
+.p-leg-bet{font-size:13px;font-weight:600}
+.p-leg-game{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px}
+.p-leg-odds{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--green);text-align:right}
+.p-leg-book{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-align:right;margin-top:2px}
+
+/* AI BREAKDOWN */
+.breakdown-card{background:var(--card);border:1px solid rgba(183,148,244,.25);border-radius:14px;padding:20px;margin-bottom:16px}
+.breakdown-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.breakdown-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--purple);text-transform:uppercase;letter-spacing:2px;display:flex;align-items:center;gap:8px}
+.ai-pulse{width:7px;height:7px;border-radius:50%;background:var(--purple);animation:pulse 2s infinite}
+.refresh-btn{background:transparent;border:1px solid rgba(183,148,244,.3);border-radius:6px;color:var(--purple);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 10px;cursor:pointer;transition:all .2s}
+.refresh-btn:hover{background:rgba(183,148,244,.1)}
+.refresh-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.pick-block{background:#07090f;border:1px solid rgba(0,255,136,.15);border-radius:10px;padding:16px;margin-bottom:12px}
+.pick-block-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.pick-name{font-size:15px;font-weight:700;margin-bottom:2px}
+.pick-game{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--purple);margin-bottom:10px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.kpi-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700}
+.kpi-value.g{color:var(--green)}.kpi-value.b{color:var(--blue)}.kpi-value.y{color:var(--yellow)}.kpi-value.p{color:var(--purple)}
+
+.stats-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.stat-chip{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+.stat-chip span{color:var(--text);font-weight:600}
+
+.kelly-box{background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.12);border-radius:8px;padding:12px;margin-bottom:12px}
+.kelly-title{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.kelly-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.k-item{text-align:center}
+.k-label{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px}
+.k-value{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--green)}
+
+.ai-analysis{font-size:13px;line-height:1.75;color:var(--text);padding:12px;background:rgba(183,148,244,.04);border:1px solid rgba(183,148,244,.12);border-radius:8px;white-space:pre-wrap}
+.ai-analysis.loading{color:var(--muted);font-style:italic;font-family:'IBM Plex Mono',monospace;font-size:11px;animation:blink 1.2s infinite}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* AI FAB */
+.ai-fab{position:fixed;bottom:24px;right:20px;z-index:999;width:52px;height:52px;border-radius:50%;background:var(--purple);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 20px rgba(183,148,244,.4);transition:all .2s}
+.ai-fab:hover{transform:scale(1.08)}
+.ai-panel{position:fixed;bottom:88px;right:20px;z-index:998;width:340px;max-width:calc(100vw - 32px);background:#0b0f1a;border:1px solid rgba(183,148,244,.2);border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:none;flex-direction:column;overflow:hidden}
+.ai-panel.open{display:flex}
+.ai-panel-head{padding:13px 16px;background:rgba(183,148,244,.06);border-bottom:1px solid rgba(183,148,244,.12);display:flex;align-items:center;justify-content:space-between}
+.ai-panel-title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:var(--purple);display:flex;align-items:center;gap:8px}
+.ai-close{background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+.ai-msgs{height:280px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:9px;scroll-behavior:smooth}
+.ai-msg{max-width:85%;padding:9px 12px;border-radius:10px;font-size:13px;line-height:1.5}
+.ai-msg.user{align-self:flex-end;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.2);color:var(--text);border-bottom-right-radius:3px}
+.ai-msg.assistant{align-self:flex-start;background:var(--card);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:3px}
+.ai-msg.thinking{color:var(--muted);font-style:italic;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.ai-chips{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px 4px}
+.ai-chip{background:rgba(183,148,244,.06);border:1px solid rgba(183,148,244,.15);border-radius:6px;padding:4px 9px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--purple);cursor:pointer;transition:all .15s}
+.ai-chip:hover{background:rgba(183,148,244,.12)}
+.ai-input-row{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center}
+.ai-input{flex:1;background:transparent;border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none}
+.ai-input:focus{border-color:rgba(183,148,244,.3)}
+.ai-send{background:var(--purple);border:none;border-radius:8px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .15s}
+.ai-send:hover{filter:brightness(1.15)}
+.ai-send:disabled{opacity:.4;cursor:not-allowed}
+
 /* STATES */
-.state-box{border:1px dashed var(--border);border-radius:12px;padding:44px 20px;text-align:center}
+.state-box{border:1px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center}
 .state-box h3{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--text);margin-bottom:8px}
-.state-box p{font-size:12px;color:var(--muted)}
+.state-box p{font-size:12px;color:var(--muted);line-height:1.6}
 .error-box{background:rgba(255,71,87,.06);border:1px solid rgba(255,71,87,.2);border-radius:12px;padding:24px;text-align:center}
-.error-box p{color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:12px;margin-bottom:8px;word-break:break-word;line-height:1.6}
-.spinner{width:38px;height:38px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
-.loading-text{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:4px}
+.err-msg{color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:12px;margin-bottom:8px;word-break:break-word;line-height:1.6}
+.spinner{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+.loading-txt{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:4px}
 .loading-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2a3040}
-.free-note{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2a3040;text-align:center;margin-top:16px;line-height:1.6}
- 
-@keyframes spin   {to{transform:rotate(360deg)}}
-@keyframes pulse  {0%,100%{opacity:1}50%{opacity:.4}}
-@keyframes fadeUp {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:520px){
+.note{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2a3040;text-align:center;margin-top:14px;line-height:1.6}
+.divider{height:1px;background:var(--border);margin:24px 0}
+
+/* FOOTER */
+.footer{border-top:1px solid var(--border);padding:24px 20px;text-align:center;margin-top:40px}
+.footer-brand{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:5px}
+.footer-brand strong{color:var(--green);letter-spacing:1px}
+.footer-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2a3040}
+.footer-sub .purple{color:var(--purple)}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:560px){
   .stats{grid-template-columns:repeat(2,1fr)}
   .stat:nth-child(2){border-right:none}
   .stat:nth-child(3){border-top:1px solid var(--border)}
   .play-card{grid-template-columns:1fr}
-  .play-right{text-align:left;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .play-right{text-align:left;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .kpi-grid,.kelly-row{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 </head>
 <body>
- 
+
 <header>
-  <div class="logo">Sharp<span>Feed</span><small>VIA SHARPAPI</small></div>
+  <div class="logo">Sharp<span>Feed</span> <span class="ai-tag">AI</span><small>BY HIGH FREQUENCY TECH</small></div>
   <div class="status-pill" id="pill" style="background:rgba(74,85,104,.18);border:1px solid rgba(74,85,104,.45);color:#4a5568">
     <span class="dot" id="dot" style="background:#4a5568"></span>
     <span id="statusText">IDLE</span>
   </div>
 </header>
- 
+
 <div class="wrap">
   <div class="hero">
     <h1>Auto +EV <em>Play Scanner</em></h1>
-    <p>// SharpAPI live odds · DraftKings · FanDuel · no-vig EV math · real data</p>
+    <p>// Powered by <span class="ai">SharpFeed AI</span> · Pinnacle devig · real team stats · DK · FD · Caesars · BetMGM</p>
   </div>
- 
+
   <div class="stats">
-    <div class="stat"><div class="stat-label">Plays Found</div><div class="stat-value" id="sPlays">—</div></div>
-    <div class="stat"><div class="stat-label">Avg EV</div><div class="stat-value" id="sAvg">—</div></div>
+    <div class="stat"><div class="stat-label">+EV Plays</div><div class="stat-value" id="sPlays">—</div></div>
     <div class="stat"><div class="stat-label">Best EV</div><div class="stat-value" id="sBest">—</div></div>
-    <div class="stat"><div class="stat-label">Odds Rows</div><div class="stat-value" id="sRows">—</div></div>
+    <div class="stat"><div class="stat-label">Avg EV</div><div class="stat-value" id="sAvg">—</div></div>
+    <div class="stat"><div class="stat-label">Games</div><div class="stat-value" id="sGames">—</div></div>
   </div>
- 
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active"         onclick="switchTab('plays',this)">+EV Plays</button>
+    <button class="tab"                onclick="switchTab('parlays',this)">Parlays</button>
+    <button class="tab purple"         onclick="switchTab('breakdown',this)">AI Breakdown</button>
+  </div>
+
+  <!-- CONTROLS -->
   <div class="controls">
     <div class="ctrl-box">
       <span class="ctrl-label">Sport</span>
@@ -132,17 +234,20 @@ input[type=number]{width:46px}
         <option value="mlb">MLB</option>
         <option value="nhl">NHL</option>
         <option value="nfl">NFL</option>
+        <option value="wnba">WNBA</option>
+        <option value="tennis">Tennis</option>
         <option value="ncaab">NCAAB</option>
-        <option value="ufc">UFC</option>
+        <option value="ncaaf">NCAAF</option>
         <option value="mls">MLS</option>
+        <option value="ufc">UFC/MMA</option>
       </select>
     </div>
     <div class="ctrl-box">
       <span class="ctrl-label">Market</span>
       <select id="market">
-        <option value="moneyline">Moneyline</option>
-        <option value="spread">Spread</option>
-        <option value="total">Total</option>
+        <option value="h2h">Moneyline</option>
+        <option value="spreads">Spread</option>
+        <option value="totals">Totals</option>
       </select>
     </div>
     <div class="ctrl-box">
@@ -151,153 +256,385 @@ input[type=number]{width:46px}
     </div>
     <button class="btn btn-primary" id="scanBtn" onclick="runScan()">▶ SCAN NOW</button>
   </div>
- 
-  <div class="feed-header">
-    <div class="feed-title">
-      EV Feed <span class="play-count" id="playCount">0 plays</span>
+
+  <!-- PLAYS -->
+  <div id="playsView">
+    <div class="section-hdr">
+      <div class="section-title">EV Feed <span class="badge" id="playCount">0 plays</span></div>
+      <span class="updated" id="updated"></span>
     </div>
-    <span class="updated" id="updated"></span>
+    <div id="feed">
+      <div class="state-box"><h3>Ready to scan</h3><p>Select sport + market and hit Scan Now<br>Uses Pinnacle sharp lines + real team stats for accuracy</p></div>
+    </div>
   </div>
- 
-  <div id="feed">
-    <div class="state-box">
-      <h3>Ready to scan</h3>
-      <p>Pick sport + market then hit Scan Now</p>
+
+  <!-- PARLAYS -->
+  <div id="parlaysView" style="display:none">
+    <div class="section-hdr">
+      <div class="section-title" style="color:var(--purple)">Best Parlays <span class="badge" style="background:rgba(183,148,244,.08);border-color:rgba(183,148,244,.2)" id="parlayCount">0</span></div>
+      <span class="updated">Only +EV legs combined</span>
+    </div>
+    <div id="parlayFeed">
+      <div class="state-box"><h3>No parlays yet</h3><p>Run a scan first — parlays auto-build from highest +EV plays</p></div>
+    </div>
+  </div>
+
+  <!-- AI BREAKDOWN -->
+  <div id="breakdownView" style="display:none">
+    <div class="section-hdr">
+      <div class="section-title" style="color:var(--purple)">
+        <span class="ai-pulse" style="width:7px;height:7px;border-radius:50%;background:var(--purple);display:inline-block;animation:pulse 2s infinite"></span>
+        AI Breakdown
+      </div>
+      <button class="refresh-btn" id="refreshBtn" onclick="runBreakdown()" style="background:transparent;border:1px solid rgba(183,148,244,.3);border-radius:6px;color:var(--purple);font-family:monospace;font-size:10px;padding:4px 10px;cursor:pointer">
+        ↺ Refresh Analysis
+      </button>
+    </div>
+
+    <div id="breakdownContent">
+      <div class="state-box">
+        <h3>No analysis yet</h3>
+        <p>Run a scan first, then click the AI Breakdown tab<br>Analysis uses real team stats + Pinnacle devig data</p>
+      </div>
     </div>
   </div>
 </div>
- 
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-brand">Built by <strong>HIGH FREQUENCY TECH</strong></div>
+  <div class="footer-sub">Powered by <span class="purple">SharpFeed AI</span> · Pinnacle devig · Real team stats · Sharp EV math</div>
+</footer>
+
+<!-- AI CHAT FAB -->
+<button class="ai-fab" onclick="toggleAI()" title="SharpFeed AI Chat">🤖</button>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-panel-head">
+    <div class="ai-panel-title"><span style="width:7px;height:7px;border-radius:50%;background:var(--purple);display:inline-block;animation:pulse 2s infinite"></span>SharpFeed AI</div>
+    <button class="ai-close" onclick="toggleAI()">×</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-msg assistant">Hey! Ask me anything about the plays, EV math, team stats, or parlays. I analyze real data to back up every pick.</div>
+  </div>
+  <div class="ai-chips" id="aiChips">
+    <span class="ai-chip" onclick="askChip(this)">Best play right now?</span>
+    <span class="ai-chip" onclick="askChip(this)">Explain EV math</span>
+    <span class="ai-chip" onclick="askChip(this)">How to size bets?</span>
+    <span class="ai-chip" onclick="askChip(this)">Best parlay?</span>
+  </div>
+  <div class="ai-input-row">
+    <input class="ai-input" id="aiInput" placeholder="Ask about plays, stats, EV…"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();sendAI()}"/>
+    <button class="ai-send" id="aiSendBtn" onclick="sendAI()">➤</button>
+  </div>
+</div>
+
 <script>
-// Replace this with your actual Netlify site URL after deploying
-// e.g. https://sharpfeed.netlify.app/.netlify/functions/odds
-const FUNCTION_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:8888/.netlify/functions/odds'
-  : '/.netlify/functions/odds';
- 
-const BOOK_SHORT = {
-  draftkings:'DK', fanduel:'FD', caesars:'CZR', betmgm:'MGM',
-  pinnacle:'PIN', fanatics:'FAN', betrivers:'BR', novig:'NOV',
-  betfair:'BF', bookmaker:'BKM', bovada:'BOV', bet365:'B365',
-};
- 
-function shortBook(b) { return BOOK_SHORT[(b||'').toLowerCase()] || b; }
-function fmtOdds(o) {
-  const n = Number(o);
-  if (isNaN(n) || n === 0) return '—';
-  return n > 0 ? `+${n}` : `${n}`;
+const FUNC      = window.location.hostname==='localhost' ? 'http://localhost:8888/.netlify/functions' : '/.netlify/functions';
+const BOOK_S    = {draftkings:'DK',fanduel:'FD',caesars:'CZR',betmgm:'MGM',pinnacle:'PIN',pointsbet:'PB',betrivers:'BR',unibet:'UNI'};
+let lastData    = null;
+let currentTab  = 'plays';
+let aiHistory   = [];
+
+function shortBook(b){ return BOOK_S[(b||'').toLowerCase()]||b; }
+function fmtO(o){ const n=Number(o); return isNaN(n)||n===0?'—':n>0?`+${n}`:`${n}`; }
+function americanToDec(a){ a=Number(a); return a>0?1+a/100:1+100/Math.abs(a); }
+function kelly(fp,dec){ const b=dec-1,p=fp/100,q=1-p; return Math.max(0,(b*p-q)/b); }
+
+function setStatus(text,color){
+  const c={green:'#00ff88',red:'#ff4757',yellow:'#ffb700',gray:'#4a5568',purple:'#b794f4'}[color]||'#4a5568';
+  document.getElementById('statusText').textContent=text;
+  const dot=document.getElementById('dot'),pill=document.getElementById('pill');
+  dot.style.background=c; dot.style.animation=color==='green'||color==='purple'?'pulse 2s infinite':'none';
+  pill.style.background=c+'18'; pill.style.border=`1px solid ${c}45`; pill.style.color=c;
 }
-function setStatus(text, color) {
-  const c = {green:'#00ff88', red:'#ff4757', yellow:'#ffb700', gray:'#4a5568'}[color] || '#4a5568';
-  document.getElementById('statusText').textContent = text;
-  document.getElementById('dot').style.background = c;
-  const pill = document.getElementById('pill');
-  pill.style.background = c + '18';
-  pill.style.border = `1px solid ${c}45`;
-  pill.style.color = c;
-  if (color === 'green') document.getElementById('dot').style.animation = 'pulse 2s infinite';
-  else document.getElementById('dot').style.animation = 'none';
+function setStat(id,v){ document.getElementById(id).textContent=v; }
+
+function switchTab(tab, el){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('playsView').style.display    = tab==='plays'     ? '' : 'none';
+  document.getElementById('parlaysView').style.display  = tab==='parlays'   ? '' : 'none';
+  document.getElementById('breakdownView').style.display= tab==='breakdown' ? '' : 'none';
+  if(tab==='breakdown' && lastData) runBreakdown();
 }
-function setStat(id, val) { document.getElementById(id).textContent = val; }
- 
-async function runScan() {
-  const league = document.getElementById('sport').value;
-  const market = document.getElementById('market').value;
-  const minEV  = parseFloat(document.getElementById('minEV').value) || 0;
-  const btn    = document.getElementById('scanBtn');
- 
-  btn.disabled = true;
-  btn.textContent = '⟳ SCANNING...';
-  setStatus('SCANNING', 'yellow');
-  document.getElementById('feed').innerHTML = `
+
+// ── SCAN ──────────────────────────────────────────────────────────────────
+async function runScan(){
+  const league=document.getElementById('sport').value;
+  const market=document.getElementById('market').value;
+  const minEV =parseFloat(document.getElementById('minEV').value)||0;
+  const btn   =document.getElementById('scanBtn');
+  btn.disabled=true; btn.textContent='⟳ SCANNING...';
+  setStatus('SCANNING','yellow');
+  document.getElementById('feed').innerHTML=`
     <div style="text-align:center;padding:50px 20px">
       <div class="spinner"></div>
-      <div class="loading-text">Fetching live odds from SharpAPI…</div>
-      <div class="loading-sub">Running no-vig EV math on every game</div>
+      <div class="loading-txt">Fetching live odds · 8 books · devig in progress…</div>
+      <div class="loading-sub">Pinnacle sharp lines as reference when available</div>
     </div>`;
- 
-  try {
-    const url = `${FUNCTION_URL}?league=${league}&market=${market}&min_ev=${minEV}`;
-    const res  = await fetch(url);
-    const data = await res.json();
- 
-    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
- 
-    const { plays, meta } = data;
- 
-    setStat('sRows',  meta.total_rows);
-    setStat('sPlays', plays.length);
- 
-    if (plays.length) {
-      const avg = plays.reduce((s, p) => s + p.ev, 0) / plays.length;
-      setStat('sAvg',  `+${avg.toFixed(1)}%`);
-      setStat('sBest', `+${plays[0].ev.toFixed(1)}%`);
-      setStatus('LIVE', 'green');
-    } else {
-      setStat('sAvg',  '—');
-      setStat('sBest', '—');
-      setStatus('NO PLAYS', 'gray');
-    }
- 
-    document.getElementById('playCount').textContent = `${plays.length} plays`;
-    document.getElementById('updated').textContent   = `Updated ${new Date().toLocaleTimeString()}`;
-    renderPlays(plays, minEV);
- 
-  } catch (e) {
-    setStatus('ERROR', 'red');
-    document.getElementById('feed').innerHTML = `
-      <div class="error-box">
-        <p>⚠ ${e.message}</p>
-        <p style="color:var(--muted);font-size:12px;margin-top:8px">Check your Netlify function deployment</p>
-      </div>`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '▶ SCAN NOW';
-  }
+  try{
+    const res =await fetch(`${FUNC}/odds?league=${league}&market=${market}&min_ev=${minEV}`);
+    const data=await res.json();
+    if(!res.ok||data.error) throw new Error(data.error||`HTTP ${res.status}`);
+    lastData=data;
+    const {plays,parlays,meta}=data;
+    setStat('sGames',meta.games_found); setStat('sPlays',plays.length);
+    if(plays.length){
+      const avg=plays.reduce((s,p)=>s+p.ev,0)/plays.length;
+      setStat('sBest',`+${plays[0].ev.toFixed(1)}%`);
+      setStat('sAvg',`+${avg.toFixed(1)}%`);
+      setStatus('LIVE','green');
+    } else { setStat('sBest','—'); setStat('sAvg','—'); setStatus('NO PLAYS','gray'); }
+    document.getElementById('playCount').textContent=`${plays.length} plays`;
+    document.getElementById('parlayCount').textContent=`${parlays.length} parlays`;
+    document.getElementById('updated').textContent=`Updated ${new Date().toLocaleTimeString()}`;
+    renderPlays(plays,minEV); renderParlays(parlays);
+  } catch(e){
+    setStatus('ERROR','red');
+    document.getElementById('feed').innerHTML=`<div class="error-box"><div class="err-msg">⚠ ${e.message}</div><p style="color:var(--muted);font-size:12px;margin-top:8px">Check your Netlify function deployment</p></div>`;
+  } finally{ btn.disabled=false; btn.textContent='▶ SCAN NOW'; }
 }
- 
-function renderPlays(plays, minEV) {
-  const feed = document.getElementById('feed');
-  if (!plays.length) {
-    feed.innerHTML = `<div class="state-box">
-      <h3>No +EV plays above ${minEV}%</h3>
-      <p>Lines are efficient right now — try lowering Min EV% or a different market</p>
-    </div>`;
-    return;
-  }
- 
-  feed.innerHTML = plays.map((p, i) => {
-    const ev    = parseFloat(p.ev);
-    const isHi  = ev >= 5;
-    const isMid = ev >= 3 && ev < 5;
-    const cardCls  = isHi ? 'high' : isMid ? 'mid' : 'low';
-    const badgeCls = isHi ? 'ev-high' : isMid ? 'ev-mid' : 'ev-low';
-    const confCls  = isHi ? 'conf-high' : isMid ? 'conf-mid' : 'conf-low';
-    const confLbl  = isHi ? 'HIGH' : isMid ? 'MEDIUM' : 'LOW';
- 
-    const booksHTML = (p.allBooks || []).map(b => `
-      <span class="book-chip ${b.book === p.bestBook ? 'best' : ''}">
-        ${shortBook(b.book)} ${fmtOdds(b.odds)}
-      </span>`).join('');
- 
+
+// ── RENDER PLAYS ──────────────────────────────────────────────────────────
+function renderPlays(plays,minEV){
+  const feed=document.getElementById('feed');
+  if(!plays.length){ feed.innerHTML=`<div class="state-box"><h3>No +EV plays above ${minEV}%</h3><p>Try lowering Min EV% or switching market</p></div>`; return; }
+  feed.innerHTML=plays.map((p,i)=>{
+    const ev=parseFloat(p.ev),isHi=ev>=5,isMid=ev>=3&&ev<5;
+    const cardCls=isHi?'ev-high':isMid?'ev-mid':'ev-low';
+    const badgeCls=isHi?'ev-high-b':isMid?'ev-mid-b':'ev-low-b';
+    const confCls=isHi?'conf-high':isMid?'conf-mid':'conf-low';
+    const confLbl=isHi?'HIGH':isMid?'MEDIUM':'LOW';
+    const booksHtml=(p.allBooks||[]).map(b=>`<span class="book-chip ${b.book===p.bestBook?'best':''}">${shortBook(b.book)} ${fmtO(b.price)}</span>`).join('');
     return `
-    <div class="play-card ${cardCls}" style="animation-delay:${i*0.05}s">
+    <div class="play-card ${cardCls}" style="animation-delay:${i*.04}s">
       <div>
+        ${p.gameTime?`<div class="game-time">🕐 ${p.gameTime}</div>`:''}
         <div class="play-meta">
           <span class="play-sport">${p.sport}</span>
-          <span class="confidence ${confCls}">${confLbl}</span>
+          <span class="conf-badge ${confCls}">${confLbl}</span>
+          ${p.usingPinnacle?'<span class="pin-badge">PIN devig</span>':''}
         </div>
         <div class="matchup">${p.matchup}</div>
-        <div class="bet">→ ${p.bet}</div>
-        <div class="books">${booksHTML}</div>
+        <div class="bet-label">→ ${p.bet}</div>
+        <div class="books">${booksHtml}</div>
+        <div class="fair-info">Fair: ${fmtO(p.fairOdds)} · Win prob: ${p.fairProb}%</div>
       </div>
       <div class="play-right">
         <div class="ev-badge ${badgeCls}">+${ev.toFixed(1)}%</div>
-        <div class="best-odds">Best: ${fmtOdds(p.bestOdds)} <span style="color:var(--muted)">@ ${shortBook(p.bestBook)}</span></div>
-        <div class="fair-odds">Fair: ${fmtOdds(p.fairOdds)}</div>
-        <div class="win-prob">${p.fairProb}% win prob</div>
+        <div class="best-line">Best: ${fmtO(p.bestOdds)} <span style="color:var(--muted)">@ ${shortBook(p.bestBook)}</span></div>
+        <div class="fair-line">Fair: ${fmtO(p.fairOdds)}</div>
+        <div class="win-prob">${p.fairProb}% implied</div>
+      </div>
+    </div>`; }).join('')+`<div class="note">Devig: ${lastData?.meta?.devig_method||'consensus'} · ${lastData?.meta?.books_checked||'—'} books checked</div>`;
+}
+
+// ── RENDER PARLAYS ────────────────────────────────────────────────────────
+function renderParlays(parlays){
+  const feed=document.getElementById('parlayFeed');
+  if(!parlays||!parlays.length){ feed.innerHTML=`<div class="state-box"><h3>No +EV parlays found</h3><p>Need ≥2 plays with EV ≥3% from different games<br>Lower Min EV% and rescan</p></div>`; return; }
+  feed.innerHTML=parlays.map((pl,i)=>{
+    const legsHtml=pl.legs.map(l=>`
+      <div class="p-leg">
+        <div><div class="p-leg-bet">${l.bet}</div><div class="p-leg-game">${l.matchup}</div></div>
+        <div><div class="p-leg-odds">${fmtO(l.odds)}</div><div class="p-leg-book">${shortBook(l.book)} · +${l.ev.toFixed(1)}% EV</div></div>
+      </div>`).join('');
+    return `
+    <div class="parlay-card" style="animation-delay:${i*.06}s">
+      <div class="parlay-header">
+        <div>
+          <div class="parlay-label">${pl.legs.length}-Leg Parlay · ${pl.combinedFairProb}% hit prob</div>
+          <div class="parlay-odds-big">${fmtO(pl.parlayOdds)}</div>
+        </div>
+        <div class="parlay-ev-badge">+${pl.parlayEV.toFixed(1)}% EV</div>
+      </div>
+      ${legsHtml}
+    </div>`; }).join('');
+}
+
+// ── AI BREAKDOWN ──────────────────────────────────────────────────────────
+async function runBreakdown(){
+  if(!lastData||!lastData.plays.length){
+    document.getElementById('breakdownContent').innerHTML=`<div class="state-box"><h3>No scan data</h3><p>Run a scan first then come back here</p></div>`;
+    return;
+  }
+  const btn=document.getElementById('refreshBtn');
+  btn.disabled=true; btn.textContent='Analyzing…';
+
+  const bestPlay  =lastData.plays[0];
+  const bestParlay=lastData.parlays?.[0];
+  const sport     =document.getElementById('sport').value;
+
+  // Show loading state
+  document.getElementById('breakdownContent').innerHTML=`
+    <div class="breakdown-card">
+      <div class="breakdown-head">
+        <div class="breakdown-title"><span class="ai-pulse"></span>SharpFeed AI · Fetching real stats…</div>
+      </div>
+      <div style="text-align:center;padding:30px 20px">
+        <div class="spinner" style="border-top-color:var(--purple)"></div>
+        <div class="loading-txt" style="color:var(--purple)">Pulling team data + running AI analysis…</div>
+        <div class="loading-sub">Using real stats APIs + Pinnacle devig</div>
       </div>
     </div>`;
-  }).join('') + `<div class="free-note">Free tier: DraftKings + FanDuel · 60s delay · upgrade sharpapi.io for 32 books + live EV</div>`;
+
+  try{
+    const res =await fetch(`${FUNC}/breakdown`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({play:bestPlay,parlay:bestParlay,sport}),
+    });
+    const data=await res.json();
+    if(!res.ok||data.error) throw new Error(data.error||`HTTP ${res.status}`);
+
+    renderBreakdown(bestPlay, bestParlay, data);
+  } catch(e){
+    document.getElementById('breakdownContent').innerHTML=`
+      <div class="error-box"><div class="err-msg">⚠ ${e.message}</div>
+      <p style="color:var(--muted);font-size:12px;margin-top:6px">Check Netlify function deployment</p></div>`;
+  } finally{ btn.disabled=false; btn.textContent='↺ Refresh Analysis'; }
+}
+
+function renderBreakdown(play, parlay, data){
+  const stats   =data.stats||{};
+  const dec     =americanToDec(play.bestOdds);
+  const fullK   =kelly(play.fairProb,dec);
+  const halfK   =fullK/2;
+  const quarterK=fullK/4;
+
+  // Team stat chips
+  const statChips=[];
+  if(stats.awayRecord) statChips.push(`<span class="stat-chip">${stats.away||'Away'} <span>${stats.awayRecord}</span></span>`);
+  if(stats.awayStreak||stats.awayL10) statChips.push(`<span class="stat-chip">Streak <span>${stats.awayStreak||stats.awayL10}</span></span>`);
+  if(stats.awayAvgPts) statChips.push(`<span class="stat-chip">Avg Pts <span>${stats.awayAvgPts.toFixed(1)}</span></span>`);
+  if(stats.awayRS)     statChips.push(`<span class="stat-chip">RS/RA <span>${stats.awayRS}/${stats.awayRA}</span></span>`);
+  if(stats.awayGF)     statChips.push(`<span class="stat-chip">GF/GA <span>${stats.awayGF}/${stats.awayGA}</span></span>`);
+  if(stats.homeRecord) statChips.push(`<span class="stat-chip">${stats.home||'Home'} <span>${stats.homeRecord}</span></span>`);
+  if(stats.homeStreak||stats.homeL10) statChips.push(`<span class="stat-chip">Streak <span>${stats.homeStreak||stats.homeL10}</span></span>`);
+  if(stats.homeAvgPts) statChips.push(`<span class="stat-chip">Avg Pts <span>${stats.homeAvgPts.toFixed(1)}</span></span>`);
+  if(stats.homeRS)     statChips.push(`<span class="stat-chip">RS/RA <span>${stats.homeRS}/${stats.homeRA}</span></span>`);
+  if(stats.homeGF)     statChips.push(`<span class="stat-chip">GF/GA <span>${stats.homeGF}/${stats.homeGA}</span></span>`);
+  if(stats.avgTotal)   statChips.push(`<span class="stat-chip">Avg Total <span>${stats.avgTotal.toFixed(1)}</span></span>`);
+  if(stats.homePP)     statChips.push(`<span class="stat-chip">PP% <span>${stats.homePP}</span></span>`);
+
+  // Parlay section
+  let parlayHtml='';
+  if(parlay){
+    const pDec=parlay.legs.reduce((p,l)=>p*americanToDec(l.odds),1);
+    const pFullK=kelly(parlay.combinedFairProb,pDec);
+    const legsHtml=parlay.legs.map(l=>`
+      <div class="p-leg">
+        <div><div class="p-leg-bet">${l.bet}</div><div class="p-leg-game">${l.matchup}</div></div>
+        <div><div class="p-leg-odds">${fmtO(l.odds)}</div><div class="p-leg-book">+${l.ev.toFixed(1)}% EV</div></div>
+      </div>`).join('');
+    parlayHtml=`
+    <div class="breakdown-card" style="border-color:rgba(183,148,244,.25)">
+      <div class="breakdown-head">
+        <div class="breakdown-title"><span class="ai-pulse"></span>Best Parlay Breakdown</div>
+      </div>
+      <div class="pick-block" style="border-color:rgba(183,148,244,.15)">
+        <div class="pick-block-label" style="color:var(--purple)">🎯 ${parlay.legs.length}-Leg Parlay</div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Parlay Odds</div><div class="kpi-value p">${fmtO(parlay.parlayOdds)}</div></div>
+          <div class="kpi"><div class="kpi-label">Parlay EV</div><div class="kpi-value g">+${parlay.parlayEV.toFixed(1)}%</div></div>
+          <div class="kpi"><div class="kpi-label">Hit Prob</div><div class="kpi-value y">${parlay.combinedFairProb}%</div></div>
+        </div>
+        ${legsHtml}
+        <div class="kelly-box" style="margin-top:12px">
+          <div class="kelly-title">Parlay Kelly Sizing</div>
+          <div class="kelly-row">
+            <div class="k-item"><div class="k-label">Full Kelly</div><div class="k-value">${(pFullK*100).toFixed(1)}%</div></div>
+            <div class="k-item"><div class="k-label">Half Kelly ✓</div><div class="k-value">${(pFullK/2*100).toFixed(1)}%</div></div>
+            <div class="k-item"><div class="k-label">Quarter Kelly</div><div class="k-value">${(pFullK/4*100).toFixed(1)}%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-analysis">${data.parlayAnalysis||'Analysis unavailable.'}</div>
+    </div>`;
+  }
+
+  document.getElementById('breakdownContent').innerHTML=`
+    <div class="breakdown-card">
+      <div class="breakdown-head">
+        <div class="breakdown-title"><span class="ai-pulse"></span>SharpFeed AI · Best Play Breakdown</div>
+      </div>
+      <div class="pick-block">
+        <div class="pick-block-label">⚡ Top +EV Play</div>
+        <div class="pick-name">${play.bet}</div>
+        <div class="pick-game">${play.matchup} · ${play.gameTime||'Time TBD'}</div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">EV</div><div class="kpi-value g">+${play.ev.toFixed(1)}%</div></div>
+          <div class="kpi"><div class="kpi-label">Best Odds</div><div class="kpi-value b">${fmtO(play.bestOdds)}</div></div>
+          <div class="kpi"><div class="kpi-label">Fair Odds</div><div class="kpi-value y">${fmtO(play.fairOdds)}</div></div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Win Prob</div><div class="kpi-value g">${play.fairProb}%</div></div>
+          <div class="kpi"><div class="kpi-label">Best Book</div><div class="kpi-value b">${shortBook(play.bestBook)}</div></div>
+          <div class="kpi"><div class="kpi-label">Devig</div><div class="kpi-value p">${play.usingPinnacle?'Pinnacle':'Consensus'}</div></div>
+        </div>
+        ${statChips.length?`<div class="stats-row">${statChips.join('')}</div>`:''}
+        <div class="kelly-box">
+          <div class="kelly-title">Kelly Criterion — Recommended Bet Sizing</div>
+          <div class="kelly-row">
+            <div class="k-item"><div class="k-label">Full Kelly</div><div class="k-value">${(fullK*100).toFixed(1)}%</div></div>
+            <div class="k-item"><div class="k-label">Half Kelly ✓</div><div class="k-value">${(halfK*100).toFixed(1)}%</div></div>
+            <div class="k-item"><div class="k-label">Quarter Kelly</div><div class="k-value">${(quarterK*100).toFixed(1)}%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-analysis">${data.playAnalysis||'Analysis unavailable.'}</div>
+    </div>
+    ${parlayHtml}`;
+}
+
+// ── AI CHAT ───────────────────────────────────────────────────────────────
+function toggleAI(){
+  const p=document.getElementById('aiPanel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')) document.getElementById('aiInput').focus();
+}
+function askChip(el){ document.getElementById('aiInput').value=el.textContent; document.getElementById('aiChips').style.display='none'; sendAI(); }
+function appendMsg(role,text,extra=''){
+  const msgs=document.getElementById('aiMsgs');
+  const el=document.createElement('div');
+  el.className=`ai-msg ${role} ${extra}`; el.textContent=text;
+  msgs.appendChild(el); msgs.scrollTop=msgs.scrollHeight; return el;
+}
+function buildCtx(){
+  if(!lastData) return 'No scan loaded yet.';
+  const {plays,parlays,meta}=lastData;
+  const top=plays.slice(0,3).map(p=>`${p.bet} (${p.matchup}) EV:+${p.ev}% @ ${fmtO(p.bestOdds)} ${shortBook(p.bestBook)}`).join('\n');
+  const tp=parlays.slice(0,1).map(p=>`${p.legs.map(l=>l.bet).join(' + ')} | ${fmtO(p.parlayOdds)} | EV:+${p.parlayEV}%`).join('');
+  return `${meta.games_found} games, ${meta.plays_found} plays.\nTop plays:\n${top}\nTop parlay: ${tp}`;
+}
+async function sendAI(){
+  const input=document.getElementById('aiInput');
+  const msg=input.value.trim(); if(!msg) return;
+  input.value='';
+  document.getElementById('aiChips').style.display='none';
+  appendMsg('user',msg);
+  aiHistory.push({role:'user',content:msg});
+  const thinkEl=appendMsg('assistant','Analyzing…','thinking');
+  document.getElementById('aiSendBtn').disabled=true;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:350,
+        system:`You are SharpFeed AI by High Frequency Tech. Sharp sports betting analyst. Use real data. Concise and direct.\n\nCurrent scan:\n${buildCtx()}`,
+        messages:aiHistory,
+      }),
+    });
+    const d=await res.json();
+    const reply=d.content?.[0]?.text||'No response.';
+    thinkEl.textContent=reply; thinkEl.classList.remove('thinking');
+    aiHistory.push({role:'assistant',content:reply});
+    if(aiHistory.length>20) aiHistory=aiHistory.slice(-16);
+  } catch(e){ thinkEl.textContent='Connection error.'; thinkEl.classList.remove('thinking'); }
+  finally{ document.getElementById('aiSendBtn').disabled=false; }
 }
 </script>
 </body>
