@@ -379,18 +379,24 @@ async function runScan(){
     const data=await res.json();
     if(!res.ok||data.error) throw new Error(data.error||`HTTP ${res.status}`);
     lastData=data;
-    const {plays,parlays,meta}=data;
-    setStat('sGames',meta.games_found); setStat('sPlays',plays.length);
+    const plays   = data.plays   || [];
+    const parlays = data.parlays || [];
+    const meta    = data.meta    || {};
+    setStat('sGames', meta.games_found ?? '—');
+    setStat('sPlays', plays.length);
     if(plays.length){
       const avg=plays.reduce((s,p)=>s+p.ev,0)/plays.length;
       setStat('sBest',`+${plays[0].ev.toFixed(1)}%`);
       setStat('sAvg',`+${avg.toFixed(1)}%`);
       setStatus('LIVE','green');
-    } else { setStat('sBest','—'); setStat('sAvg','—'); setStatus('NO PLAYS','gray'); }
+    } else {
+      setStat('sBest','—'); setStat('sAvg','—');
+      setStatus(meta.games_found===0 ? 'NO GAMES' : 'NO PLAYS','gray');
+    }
     document.getElementById('playCount').textContent=`${plays.length} plays`;
     document.getElementById('parlayCount').textContent=`${parlays.length} parlays`;
     document.getElementById('updated').textContent=`Updated ${new Date().toLocaleTimeString()}`;
-    renderPlays(plays,minEV); renderParlays(parlays);
+    renderPlays(plays, minEV, meta); renderParlays(parlays);
   } catch(e){
     setStatus('ERROR','red');
     document.getElementById('feed').innerHTML=`<div class="error-box"><div class="err-msg">⚠ ${e.message}</div><p style="color:var(--muted);font-size:12px;margin-top:8px">Check your Netlify function deployment</p></div>`;
@@ -398,9 +404,14 @@ async function runScan(){
 }
 
 // ── RENDER PLAYS ──────────────────────────────────────────────────────────
-function renderPlays(plays,minEV){
+function renderPlays(plays,minEV,meta){
   const feed=document.getElementById('feed');
-  if(!plays.length){ feed.innerHTML=`<div class="state-box"><h3>No +EV plays above ${minEV}%</h3><p>Try lowering Min EV% or switching market</p></div>`; return; }
+  if(!plays.length){
+    const msg = meta && meta.games_found===0
+      ? `<div class="state-box"><h3>No games scheduled right now</h3><p>${meta.message||'Try a different sport — season may be inactive'}<br><br>Try: <strong>MLB · NHL · Tennis · MLS</strong></p></div>`
+      : `<div class="state-box"><h3>No +EV plays above ${minEV}%</h3><p>Lines are efficient right now<br>Try lowering Min EV% or switching market</p></div>`;
+    feed.innerHTML=msg; return;
+  }
   feed.innerHTML=plays.map((p,i)=>{
     const ev=parseFloat(p.ev),isHi=ev>=5,isMid=ev>=3&&ev<5;
     const cardCls=isHi?'ev-high':isMid?'ev-mid':'ev-low';
