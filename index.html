@@ -240,6 +240,7 @@ input[type=number]{width:46px}
         <option value="ncaaf">NCAAF</option>
         <option value="mls">MLS</option>
         <option value="ufc">UFC/MMA</option>
+        <option value="epl">EPL Soccer</option>
       </select>
     </div>
     <div class="ctrl-box">
@@ -647,6 +648,61 @@ async function sendAI(){
   } catch(e){ thinkEl.textContent='Connection error.'; thinkEl.classList.remove('thinking'); }
   finally{ document.getElementById('aiSendBtn').disabled=false; }
 }
+
+// ── LOAD ACTIVE SPORTS ON STARTUP ─────────────────────────────────────────
+const SPORT_KEY_MAP = {
+  basketball_nba:           { val:"nba",    label:"NBA 🏀" },
+  baseball_mlb:             { val:"mlb",    label:"MLB ⚾" },
+  icehockey_nhl:            { val:"nhl",    label:"NHL 🏒" },
+  americanfootball_nfl:     { val:"nfl",    label:"NFL 🏈" },
+  basketball_wnba:          { val:"wnba",   label:"WNBA 🏀" },
+  tennis_atp_french_open:   { val:"tennis", label:"Tennis 🎾" },
+  tennis_wta_french_open:   { val:"tennis", label:"Tennis WTA 🎾" },
+  tennis_atp_us_open:       { val:"tennis", label:"Tennis US Open 🎾" },
+  soccer_usa_mls:           { val:"mls",    label:"MLS ⚽" },
+  soccer_epl:               { val:"epl",    label:"EPL ⚽" },
+  mma_mixed_martial_arts:   { val:"ufc",    label:"UFC/MMA 🥊" },
+  americanfootball_ncaaf:   { val:"ncaaf",  label:"NCAAF 🏈" },
+  basketball_ncaab:         { val:"ncaab",  label:"NCAAB 🏀" },
+};
+
+async function loadActiveSports() {
+  try {
+    const res  = await fetch(`${FUNC}/sports`);
+    const data = await res.json();
+    if (!data.sports || !data.sports.length) return;
+
+    const sel   = document.getElementById('sport');
+    const seen  = new Set();
+    const opts  = [];
+
+    for (const s of data.sports) {
+      const mapped = SPORT_KEY_MAP[s.key];
+      if (mapped && !seen.has(mapped.val)) {
+        seen.add(mapped.val);
+        opts.push({ val: mapped.val, label: mapped.label, key: s.key });
+      }
+    }
+
+    if (!opts.length) return;
+
+    // Rebuild dropdown with only active sports, mark them
+    sel.innerHTML = opts.map((o, i) =>
+      `<option value="${o.val}"${i===0?' selected':''}>${o.label} ✓</option>`
+    ).join('');
+
+    // Show active sports count in hero
+    const heroP = document.querySelector('.hero p');
+    if (heroP) {
+      heroP.innerHTML = heroP.innerHTML + ` · <span style="color:var(--green)">${opts.length} active sports</span>`;
+    }
+  } catch(e) {
+    console.log('Could not load active sports:', e.message);
+  }
+}
+
+// Run on page load
+window.addEventListener('load', loadActiveSports);
 </script>
 </body>
 </html>
